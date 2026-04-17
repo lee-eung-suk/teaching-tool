@@ -2,13 +2,17 @@ import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config({ override: true });
 
 // Lazy initialization for Gemini AI client to prevent startup crashes
 let aiClient: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI {
   if (!aiClient) {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not defined in environment variables.");
+    console.log("Current GEMINI_API_KEY value:", process.env.GEMINI_API_KEY);
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'MY_GEMINI_API_KEY') {
+      throw new Error(`GEMINI_API_KEY is not defined or is definitely invalid. Currently it is: ${process.env.GEMINI_API_KEY}`);
     }
     aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   }
@@ -56,7 +60,7 @@ Respond ONLY with a raw JSON object and no markdown blocks, like this:
       res.json(result);
     } catch (e: any) {
       console.error("Gemini Error:", e);
-      res.status(500).json({ error: 'Failed to process word.' });
+      res.status(500).json({ error: e.message || 'Failed to process word.' });
     }
   });
 

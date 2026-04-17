@@ -48,8 +48,12 @@ export function WordCloud({ words }: { words: Word[] }) {
     const maxCount = Math.max(...words.map((w) => w.count));
 
     const getFontSize = (count: number) => {
-      if (minCount === maxCount) return 40; // Default size if all counts are equal
-      return 24 + ((count - minCount) / (maxCount - minCount)) * 90; // Scale between 24 and 114
+      const isMobile = dimensions.width < 600;
+      const minSize = isMobile ? 18 : 24;
+      const maxSize = isMobile ? 60 : 114;
+      
+      if (minCount === maxCount) return isMobile ? 30 : 40; // Default size if all counts are equal
+      return minSize + ((count - minCount) / (maxCount - minCount)) * (maxSize - minSize); // Scale sizes
     };
 
     const layout = cloud<Word>()

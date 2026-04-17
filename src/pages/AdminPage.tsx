@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Trash2, Plus, ExternalLink, RefreshCw } from 'lucide-react';
+import { Trash2, Plus, ExternalLink, RefreshCw, QrCode } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 
 export function AdminPage() {
   const [user, setUser] = useState<any>(null);
@@ -13,6 +14,7 @@ export function AdminPage() {
   const [newSurveyTitle, setNewSurveyTitle] = useState('');
   const [selectedSurvey, setSelectedSurvey] = useState<string | null>(null);
   const [words, setWords] = useState<any[]>([]);
+  const [showQR, setShowQR] = useState(false);
 
   // Auth checking
   useEffect(() => {
@@ -112,13 +114,13 @@ export function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen font-sans bg-[var(--color-pastel-bg)] p-8">
-      <div className="max-w-6xl mx-auto flex gap-8">
+    <div className="min-h-screen font-sans bg-[var(--color-pastel-bg)] p-4 sm:p-8">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6 sm:gap-8">
         
         {/* Sidebar: Survey List */}
-        <div className="w-1/3 bg-white p-6 rounded-3xl shadow-sm h-[calc(100vh-4rem)] flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">내 설문 목록</h2>
+        <div className="w-full md:w-1/3 bg-white p-4 sm:p-6 rounded-3xl shadow-sm h-[400px] md:h-[calc(100vh-4rem)] flex flex-col">
+          <div className="flex justify-between items-center mb-4 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold">내 설문 목록</h2>
             <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-500 px-3 py-1 bg-gray-100 rounded-full">
               로그아웃
             </button>
@@ -163,27 +165,33 @@ export function AdminPage() {
         </div>
 
         {/* Main Area: Word Management */}
-        <div className="w-2/3 bg-white p-6 rounded-3xl shadow-sm h-[calc(100vh-4rem)] flex flex-col">
+        <div className="w-full md:w-2/3 bg-white p-4 sm:p-6 rounded-3xl shadow-sm h-[500px] md:h-[calc(100vh-4rem)] flex flex-col">
           {selectedSurvey ? (
             <>
-              <div className="flex justify-between items-end border-b pb-4 mb-4">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-end border-b pb-4 mb-4 gap-4 sm:gap-0">
                 <div>
-                  <h2 className="text-3xl font-bold flex items-center gap-3">
+                  <h2 className="text-2xl sm:text-3xl font-bold flex flex-wrap items-center gap-2 sm:gap-3">
                     단어 관리
                     <Link
                       to={`/survey/${selectedSurvey}`}
                       target="_blank"
-                      className="text-[#00AEEF] hover:bg-[#eaf8ff] p-2 rounded-full transition-colors flex items-center gap-2 text-sm font-normal"
+                      className="text-[#00AEEF] hover:bg-[#eaf8ff] p-1.5 sm:p-2 rounded-full transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-normal"
                     >
-                      <ExternalLink size={18} /> 새 탭으로 접속 화면 열기
+                      <ExternalLink size={16} /> <span className="hidden sm:inline">새 탭으로 접속 화면 열기</span>
                     </Link>
+                    <button
+                      onClick={() => setShowQR(true)}
+                      className="text-[#9B51E0] hover:bg-[#f3e8ff] p-1.5 sm:p-2 rounded-full transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-normal border border-transparent hover:border-[#9B51E0]"
+                    >
+                      <QrCode size={16} /> <span className="hidden sm:inline">QR 코드로 공유하기</span>
+                    </button>
                   </h2>
                 </div>
                 <button
                   onClick={() => fetchWords(selectedSurvey)}
-                  className="text-gray-500 flex items-center gap-1 hover:text-gray-800"
+                  className="text-gray-500 flex items-center gap-1 hover:text-gray-800 self-start sm:self-auto text-sm sm:text-base"
                 >
-                  <RefreshCw size={18} />
+                  <RefreshCw size={16} />
                   새로고침
                 </button>
               </div>
@@ -194,12 +202,12 @@ export function AdminPage() {
                     제출된 단어가 없습니다.
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {words.map((w) => (
-                      <div key={w.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border">
-                        <div className="flex gap-4 items-center">
-                          <span className="font-bold text-xl">{w.word}</span>
-                          <span className="bg-white border rounded-full px-3 py-1 text-sm font-bold text-gray-500 shadow-sm">
+                      <div key={w.id} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl border">
+                        <div className="flex gap-3 sm:gap-4 items-center">
+                          <span className="font-bold text-lg sm:text-xl truncate max-w-[100px] sm:max-w-none">{w.word}</span>
+                          <span className="bg-white border rounded-full px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold text-gray-500 shadow-sm">
                             {w.count}
                           </span>
                         </div>
@@ -222,6 +230,36 @@ export function AdminPage() {
           )}
         </div>
       </div>
+      
+      {/* QR Code Modal for Sharing */}
+      {showQR && selectedSurvey && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-4" onClick={() => setShowQR(false)}>
+          <div className="bg-white p-6 sm:p-10 rounded-3xl flex flex-col items-center gap-4 sm:gap-6 shadow-2xl relative max-w-lg w-full text-center" onClick={e => e.stopPropagation()}>
+            <h2 className="text-xl sm:text-3xl font-bold text-gray-800">친구들, 여기로 접속해! 🎈</h2>
+            <p className="text-sm sm:text-base text-gray-500">휴대폰 카메라를 열어서 이 QR 코드를 비춰보세요.</p>
+            <div className="p-3 sm:p-4 border-4 border-gray-100 rounded-3xl bg-white w-full max-w-[300px] aspect-square flex items-center justify-center">
+              <QRCodeSVG 
+                value={`${window.location.origin}/survey/${selectedSurvey}`} 
+                size={250}
+                style={{ width: "100%", height: "100%" }}
+                bgColor={"#ffffff"}
+                fgColor={"#333333"}
+                level={"H"}
+                includeMargin={false}
+              />
+            </div>
+            <div className="w-full bg-gray-50 p-3 sm:p-4 rounded-xl break-all font-mono text-xs sm:text-sm border text-gray-600">
+              {`${window.location.origin}/survey/${selectedSurvey}`}
+            </div>
+            <button 
+              onClick={() => setShowQR(false)}
+              className="mt-2 sm:mt-4 bg-[#FF5F5F] text-white px-8 py-3 rounded-full font-bold text-lg sm:text-xl hover:bg-red-500 shadow-md transition-all active:scale-95 w-full sm:w-auto"
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
