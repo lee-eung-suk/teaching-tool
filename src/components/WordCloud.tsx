@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as cloud from 'd3-cloud';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { motion } from 'motion/react';
 
 interface Word {
   text: string;
@@ -8,9 +8,9 @@ interface Word {
 
 interface CloudWord {
   text: string;
-  size: number;
-  x: number;
-  y: number;
+  vwSize: number;
+  leftPct: number;
+  topPct: number;
   rotate: number;
   color: string;
 }
@@ -21,6 +21,11 @@ export function WordCloud({ words }: { words: Word[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [cloudWords, setCloudWords] = useState<CloudWord[]>([]);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  const sortedWords = useMemo(() => {
+    // Arrange words by descending count to guarantee the Hero word is exactly at index 0
+    return [...words].sort((a, b) => b.count - a.count);
+  }, [words]);
 
   // Handle Resize
   useEffect(() => {
@@ -37,100 +42,152 @@ export function WordCloud({ words }: { words: Word[] }) {
     return () => observer.disconnect();
   }, []);
 
-  // Compute Layout
+  // Compute Absolute Positioning Layout (Custom 2D Collision)
   useEffect(() => {
-    // We only need words, we can compute even if dimensions is zero (will just render invisible until resized)
-    if (words.length === 0) {
+    if (sortedWords.length === 0 || dimensions.width === 0 || dimensions.height === 0) {
       setCloudWords([]);
       return;
     }
+
+    const W = dimensions.width;
+    const H = dimensions.height;
+    const VwUnit = W / 100;
+
+    const placed: CloudWord[] = [];
+    const placedRects: {l: number, r: number, t: number, b: number}[] = [];
+
+    for (let i = 0; i < sortedWords.length; i++) {
+        const word = sortedWords[i];
+        const isHero = i === 0;
+        
+        let vwSize = 0;
+        if (isHero) {
+            // REQUIREMENTS 1 & 2: Hero word is massive, up to 35vw (35% of screen).
+            // It clamps down based on character length to ensure it doesn't overflow 90% of screen horizontally.
+            vwSize = Math.min(35, 90 / Math.max(word.text.length, 1)); 
+        } else {
+            // REQUIREMENT 3: Variable rhythm. Min 2.5vw, max ~8.5vw.
+            const baseSize = 2.5 + Math.random() * 6.0; 
+            vwSize = Math.min(baseSize, 40 / Math.max(word.text.length, 1));
+        }
+
+        const pxSize = vwSize * VwUnit;
+        // Bounding box approximation roughly matching the blocky 'Jua' font format
+        const boxW = Math.max(word.text.length, 1) * pxSize * 0.9; 
+        const boxH = pxSize * 1.35;
+
+        let attempt = 0;
+        let success = false;
+        let x = 0, y = 0;
+
+        // Try placing the word with random generation up to 2000 times
+        while (!success && attempt < 2000) {
+            if (isHero && attempt < 50) {
+                // Ensure the core word drops near the visual center reliably
+                x = W / 2 + (Math.random() * (W * 0.1) - (W * 0.05));
+                y = H / 2 + (Math.random() * (H * 0.1) - (H * 0.05));
+            } else {
+                // Completely random distribution for all secondary words across the full boundary range
+                const marginX = W * 0.05;
+                const marginY = H * 0.05;
+                const minX = boxW / 2 + marginX;
+                const maxX = W - boxW / 2 - marginX;
+                const minY = boxH / 2 + marginY;
+                const maxY = H - boxH / 2 - marginY;
+
+                x = minX + Math.random() * Math.max(maxX - minX, 1);
+                y = minY + Math.random() * Math.max(maxY - minY, 1);
+            }
+
+            const rect = {
+                l: x - boxW / 2,
+                r: x + boxW / 2,
+                t: y - boxH / 2,
+                b: y + boxH / 2
+            };
+
+            let collision = false;
+            // Pad hitboxes slightly more for the hero to give it breathing room physically
+            const collisionMargin = isHero ? pxSize * 0.10 : pxSize * 0.05;
+
+            // REQUIREMENT 4: Bounding Box Collision Check
+            for (const p of placedRects) {
+                if (!(rect.r + collisionMargin < p.l || 
+                      rect.l - collisionMargin > p.r || 
+                      rect.b + collisionMargin < p.t || 
+                      rect.t - collisionMargin > p.b)) {
+                    collision = true;
+                    break;
+                }
+            }
+
+            if (!collision) {
+                success = true;
+                placedRects.push(rect);
+                placed.push({
+                    text: word.text,
+                    vwSize,
+                    leftPct: (x / W) * 100, // Safe percentage coordinate mapping
+                    topPct: (y / H) * 100,
+                    rotate: isHero ? 0 : (Math.random() > 0.7 ? 0 : (Math.random() > 0.5 ? 12 : -12)),
+                    color: COLORS[i % COLORS.length]
+                });
+            }
+            attempt++;
+        }
+
+        if (!success) {
+            // Graceful degradation: place near center safely if screen gets completely choked
+            placed.push({
+                text: word.text,
+                vwSize,
+                leftPct: 50 + (Math.random() * 20 - 10),
+                topPct: 50 + (Math.random() * 20 - 10),
+                rotate: 0,
+                color: COLORS[i % COLORS.length]
+            });
+        }
+    }
     
-    // Protect against zero dimension which causes d3-cloud to hang or return empty
-    if (dimensions.width === 0 || dimensions.height === 0) {
-       return;
-    }
-
-    const minCount = Math.min(...words.map((w) => w.count));
-    const maxCount = Math.max(...words.map((w) => w.count));
-
-    const getFontSize = (count: number) => {
-      const isMobile = dimensions.width < 600;
-      const minSize = isMobile ? 16 : 24;
-      const maxSize = isMobile ? 40 : 80;
-      
-      if (minCount === maxCount) return isMobile ? 30 : 50; // Default size if all counts are equal
-      return minSize + ((count - minCount) / (maxCount - minCount)) * (maxSize - minSize); // Scale sizes
-    };
-
-    try {
-      console.log('WordCloud running layout with dimensions:', dimensions, 'words:', words.length);
-      const layout = cloud<Word>()
-        .size([dimensions.width, dimensions.height])
-        .words(words.map((w) => ({ ...w })))
-        .padding(5) // Reduced padding to prevent words from being rejected
-        .rotate(() => (Math.random() > 0.5 ? 0 : (Math.random() > 0.5 ? -15 : 15)))
-        .font('Arial Rounded MT Bold')
-        .fontSize((d) => getFontSize(d.count))
-        .on('end', (computedWords) => {
-          console.log('WordCloud layout computed words:', computedWords.length);
-          setCloudWords(
-            computedWords.map((w) => ({
-              text: w.text || '',
-              size: w.size || 20,
-              x: w.x || 0,
-              y: w.y || 0,
-              rotate: w.rotate || 0,
-              color: COLORS[Math.floor(Math.random() * COLORS.length)],
-            }))
-          );
-        });
-
-      layout.start();
-    } catch (e) {
-      console.error("Wordcloud layout failed", e);
-    }
-  }, [words, dimensions]);
+    setCloudWords(placed);
+  }, [sortedWords, dimensions]);
 
   return (
-    <div ref={containerRef} className="w-full h-full min-h-[400px] flex-1 relative">
-      {(cloudWords.length === 0 && words.length > 0 && dimensions.width > 0) ? (
-        <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-4 content-center p-4">
-          {words.map((w, i) => (
-            <span 
-              key={i} 
-              className="font-bold rounded-full px-4 py-2 bg-white/50 shadow-sm border border-black/5"
-              style={{
-                fontSize: `${Math.max(18, Math.min(40, 20 + w.count * 2))}px`,
-                color: COLORS[i % COLORS.length]
-              }}
-            >
-              {w.text} <span className="text-sm text-gray-400">({w.count})</span>
-            </span>
-          ))}
-        </div>
-      ) : (
-        <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
-          <g transform={`translate(${dimensions.width / 2},${dimensions.height / 2})`}>
-            {cloudWords.map((w, i) => (
-              <text
+    <div ref={containerRef} className="w-full h-full min-h-[500px] flex-1 relative bg-transparent overflow-hidden">
+        {cloudWords.map((w, i) => (
+            <motion.div
                 key={`${w.text}-${i}`}
-                textAnchor="middle"
-                transform={`translate(${w.x},${w.y}) rotate(${w.rotate})`}
+                // REQUIREMENT 1: "Absolute positioning" enforced to strictly prevent standard flex alignment line-ups
+                className="absolute font-bold whitespace-nowrap"
                 style={{
-                  fontSize: `${w.size}px`,
-                  fontFamily: 'Arial Rounded MT Bold, Helvetica Rounded, Arial, sans-serif',
-                  fontWeight: 900,
-                  fill: w.color,
-                  transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)', // Bouncy transition
-                  textShadow: '2px 2px 0px rgba(255,255,255,0.8)'
+                    left: `${w.leftPct}%`,
+                    top: `${w.topPct}%`,
+                    // REQUIREMENT 2: Font sizing exclusively processed with raw 'vw'
+                    fontSize: `${w.vwSize}vw`,
+                    fontFamily: "'Jua', sans-serif",
+                    color: w.color,
+                    cursor: 'pointer',
+                    textShadow: 'rgba(255, 255, 255, 0.4) 2px 2px 4px',
                 }}
-              >
+                // Transform -50% forces real center anchor for the absolute percentages 
+                initial={{ opacity: 0, scale: 0.2, x: "-50%", y: "-50%", rotate: w.rotate }}
+                animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%", rotate: w.rotate }}
+                whileHover={{ 
+                    scale: 1.15,
+                    rotate: w.rotate === 0 ? [-2, 2, -1, 0] : [w.rotate, w.rotate+5, w.rotate-5, w.rotate], 
+                    filter: 'drop-shadow(0px 8px 12px rgba(0,0,0,0.3)) brightness(1.15)',
+                    zIndex: 50
+                }}
+                transition={{
+                    type: "spring",
+                    stiffness: 300,
+                    damping: 15,
+                    rotate: { duration: 0.4 }
+                }}
+            >
                 {w.text}
-              </text>
-            ))}
-          </g>
-        </svg>
-      )}
+            </motion.div>
+        ))}
     </div>
   );
 }
