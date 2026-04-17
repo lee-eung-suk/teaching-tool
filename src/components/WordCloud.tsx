@@ -39,9 +39,15 @@ export function WordCloud({ words }: { words: Word[] }) {
 
   // Compute Layout
   useEffect(() => {
-    if (words.length === 0 || dimensions.width === 0 || dimensions.height === 0) {
+    // We only need words, we can compute even if dimensions is zero (will just render invisible until resized)
+    if (words.length === 0) {
       setCloudWords([]);
       return;
+    }
+    
+    // Protect against zero dimension which causes d3-cloud to hang or return empty
+    if (dimensions.width === 0 || dimensions.height === 0) {
+       return;
     }
 
     const minCount = Math.min(...words.map((w) => w.count));
@@ -49,34 +55,38 @@ export function WordCloud({ words }: { words: Word[] }) {
 
     const getFontSize = (count: number) => {
       const isMobile = dimensions.width < 600;
-      const minSize = isMobile ? 18 : 24;
-      const maxSize = isMobile ? 60 : 114;
+      const minSize = isMobile ? 18 : 30; // Increased min sizes slightly
+      const maxSize = isMobile ? 60 : 120;
       
-      if (minCount === maxCount) return isMobile ? 30 : 40; // Default size if all counts are equal
+      if (minCount === maxCount) return isMobile ? 40 : 60; // Default size if all counts are equal
       return minSize + ((count - minCount) / (maxCount - minCount)) * (maxSize - minSize); // Scale sizes
     };
 
-    const layout = cloud<Word>()
-      .size([dimensions.width, dimensions.height])
-      .words(words.map((w) => ({ ...w })))
-      .padding(10)
-      .rotate(() => (Math.random() > 0.5 ? 0 : (Math.random() > 0.5 ? -15 : 15))) // Wobbly fun angles
-      .font('Arial Rounded MT Bold')
-      .fontSize((d) => getFontSize(d.count))
-      .on('end', (computedWords) => {
-        setCloudWords(
-          computedWords.map((w) => ({
-            text: w.text || '',
-            size: w.size || 20,
-            x: w.x || 0,
-            y: w.y || 0,
-            rotate: w.rotate || 0,
-            color: COLORS[Math.floor(Math.random() * COLORS.length)],
-          }))
-        );
-      });
+    try {
+      const layout = cloud<Word>()
+        .size([dimensions.width, dimensions.height])
+        .words(words.map((w) => ({ ...w })))
+        .padding(15) // Slightly increased padding
+        .rotate(() => (Math.random() > 0.5 ? 0 : (Math.random() > 0.5 ? -15 : 15)))
+        .font('Arial Rounded MT Bold')
+        .fontSize((d) => getFontSize(d.count))
+        .on('end', (computedWords) => {
+          setCloudWords(
+            computedWords.map((w) => ({
+              text: w.text || '',
+              size: w.size || 20,
+              x: w.x || 0,
+              y: w.y || 0,
+              rotate: w.rotate || 0,
+              color: COLORS[Math.floor(Math.random() * COLORS.length)],
+            }))
+          );
+        });
 
-    layout.start();
+      layout.start();
+    } catch (e) {
+      console.error("Wordcloud layout failed", e);
+    }
   }, [words, dimensions]);
 
   return (
