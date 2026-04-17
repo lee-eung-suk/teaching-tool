@@ -55,22 +55,24 @@ export function WordCloud({ words }: { words: Word[] }) {
 
     const getFontSize = (count: number) => {
       const isMobile = dimensions.width < 600;
-      const minSize = isMobile ? 18 : 30; // Increased min sizes slightly
-      const maxSize = isMobile ? 60 : 120;
+      const minSize = isMobile ? 16 : 24;
+      const maxSize = isMobile ? 40 : 80;
       
-      if (minCount === maxCount) return isMobile ? 40 : 60; // Default size if all counts are equal
+      if (minCount === maxCount) return isMobile ? 30 : 50; // Default size if all counts are equal
       return minSize + ((count - minCount) / (maxCount - minCount)) * (maxSize - minSize); // Scale sizes
     };
 
     try {
+      console.log('WordCloud running layout with dimensions:', dimensions, 'words:', words.length);
       const layout = cloud<Word>()
         .size([dimensions.width, dimensions.height])
         .words(words.map((w) => ({ ...w })))
-        .padding(15) // Slightly increased padding
+        .padding(5) // Reduced padding to prevent words from being rejected
         .rotate(() => (Math.random() > 0.5 ? 0 : (Math.random() > 0.5 ? -15 : 15)))
         .font('Arial Rounded MT Bold')
         .fontSize((d) => getFontSize(d.count))
         .on('end', (computedWords) => {
+          console.log('WordCloud layout computed words:', computedWords.length);
           setCloudWords(
             computedWords.map((w) => ({
               text: w.text || '',
@@ -90,28 +92,45 @@ export function WordCloud({ words }: { words: Word[] }) {
   }, [words, dimensions]);
 
   return (
-    <div ref={containerRef} className="w-full h-full min-h-[400px]">
-      <svg width="100%" height="100%" viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}>
-        <g transform={`translate(${dimensions.width / 2},${dimensions.height / 2})`}>
-          {cloudWords.map((w, i) => (
-            <text
-              key={`${w.text}-${i}`}
-              textAnchor="middle"
-              transform={`translate(${w.x},${w.y}) rotate(${w.rotate})`}
+    <div ref={containerRef} className="w-full h-full min-h-[400px] flex-1 relative">
+      {(cloudWords.length === 0 && words.length > 0 && dimensions.width > 0) ? (
+        <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-4 content-center p-4">
+          {words.map((w, i) => (
+            <span 
+              key={i} 
+              className="font-bold rounded-full px-4 py-2 bg-white/50 shadow-sm border border-black/5"
               style={{
-                fontSize: `${w.size}px`,
-                fontFamily: 'Arial Rounded MT Bold, Helvetica Rounded, Arial, sans-serif',
-                fontWeight: 900,
-                fill: w.color,
-                transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)', // Bouncy transition
-                textShadow: '2px 2px 0px rgba(255,255,255,0.8)'
+                fontSize: `${Math.max(18, Math.min(40, 20 + w.count * 2))}px`,
+                color: COLORS[i % COLORS.length]
               }}
             >
-              {w.text}
-            </text>
+              {w.text} <span className="text-sm text-gray-400">({w.count})</span>
+            </span>
           ))}
-        </g>
-      </svg>
+        </div>
+      ) : (
+        <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+          <g transform={`translate(${dimensions.width / 2},${dimensions.height / 2})`}>
+            {cloudWords.map((w, i) => (
+              <text
+                key={`${w.text}-${i}`}
+                textAnchor="middle"
+                transform={`translate(${w.x},${w.y}) rotate(${w.rotate})`}
+                style={{
+                  fontSize: `${w.size}px`,
+                  fontFamily: 'Arial Rounded MT Bold, Helvetica Rounded, Arial, sans-serif',
+                  fontWeight: 900,
+                  fill: w.color,
+                  transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)', // Bouncy transition
+                  textShadow: '2px 2px 0px rgba(255,255,255,0.8)'
+                }}
+              >
+                {w.text}
+              </text>
+            ))}
+          </g>
+        </svg>
+      )}
     </div>
   );
 }
