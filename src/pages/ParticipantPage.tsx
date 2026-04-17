@@ -3,6 +3,10 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { WordCloud } from '../components/WordCloud';
 import { Send, Loader2 } from 'lucide-react';
+import { GoogleGenAI, Type } from '@google/genai';
+
+// Initialize Gemini
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export function ParticipantPage() {
   const { id } = useParams();
@@ -14,7 +18,7 @@ export function ParticipantPage() {
 
   const fetchWords = async () => {
     if (!id) return;
-    const { data, error } = await supabase
+    const { data, error: fetchErr } = await supabase
       .from('words')
       .select('id, word, count')
       .eq('survey_id', id);
@@ -22,6 +26,7 @@ export function ParticipantPage() {
     if (data) {
       setWords(data.map((row) => ({ text: row.word, count: row.count, dbId: row.id })));
     }
+    if (fetchErr) console.error('Error fetching words:', fetchErr);
   };
 
   // Setup Realtime & Fetch Initial Data
@@ -70,18 +75,31 @@ export function ParticipantPage() {
     setError('');
 
     try {
-      // 1. Process via Gemini API (Backend)
-      const processRes = await fetch('/api/process-word', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ word: word.trim() }),
-      });
-      
-      const processData = await processRes.json();
+      // 1. Process via Gemini API (Directly from Frontend as per AI Studio guidance)
+      const prompt = `You are a strict but friendly content moderator and synonym grouper for a kindergarten/elementary school wordcloud survey tool.
+The user submitted the word: "${word.trim()}".
+Task:
+1. Is it a bad word, curse word, explicit, violently themed, harmful, or inappropriate for young children? If yes, set "valid": false and provide a child-friendly short reason in Korean.
+2. If it is an acceptable word, normalize it to a standard, simple Korean representative noun (e.g., 'apple', '애플' -> '사과', '아빠', '대디' -> '아빠', '놀기', '놀다' -> '놀기').`;
 
-      if (!processRes.ok) {
-        throw new Error(processData.error || '처리 중 오류가 발생했어요!');
-      }
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              valid: { type: Type.BOOLEAN },
+              word: { type: Type.STRING },
+              reason: { type: Type.STRING },
+            },
+            required: ['valid', 'word', 'reason'],
+          },
+        },
+      });
+
+      const processData = JSON.parse(response.text || '{}');
 
       if (!processData.valid) {
         setError(processData.reason || '사용할 수 없는 단어입니다.');
