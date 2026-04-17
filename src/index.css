@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif;
+  
+  --color-pastel-bg: #FFFDF0;
+  --color-rainbow-1: #FF5F5F;
+  --color-rainbow-2: #FFA05F;
+  --color-rainbow-3: #FFB800;
+  --color-rainbow-4: #4AC948;
+  --color-rainbow-5: #5FBFFF;
+  --color-rainbow-6: #5F7FFF;
+  --color-rainbow-7: #BF5FFF;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-pastel-bg);
+  color: #333;
+}
