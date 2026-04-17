@@ -3,8 +3,17 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 
-// Using Gemini AI client securely on the server
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Lazy initialization for Gemini AI client to prevent startup crashes
+let aiClient: GoogleGenAI | null = null;
+function getGeminiClient(): GoogleGenAI {
+  if (!aiClient) {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not defined in environment variables.");
+    }
+    aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+  return aiClient;
+}
 
 async function startServer() {
   const app = express();
@@ -34,6 +43,7 @@ Respond ONLY with a raw JSON object and no markdown blocks, like this:
   "reason": "If invalid, why (in Korean)? Else empty string."
 }`;
 
+      const ai = getGeminiClient();
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
@@ -66,7 +76,7 @@ Respond ONLY with a raw JSON object and no markdown blocks, like this:
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(\`Server is successfully running on http://localhost:\${PORT} (Express)\`);
+    console.log(`Server is successfully running on http://localhost:${PORT} (Express)`);
   });
 }
 
