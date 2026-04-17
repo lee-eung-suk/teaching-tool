@@ -137,35 +137,37 @@ export function AdminPage() {
         <div className="w-full md:w-2/3 bg-white p-4 sm:p-6 rounded-3xl shadow-sm h-[500px] md:h-[calc(100vh-4rem)] flex flex-col">
           {selectedSurvey ? (
             <>
-              <div className="flex flex-col border-b pb-4 mb-4 gap-4">
-                <div className="flex flex-col gap-4">
-                  <h2 className="text-2xl sm:text-3xl font-bold">단어 관리</h2>
-                  <div className="flex flex-wrap gap-2">
-                    <Link
-                      to={`/survey/${selectedSurvey}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-[#EAF8FF] text-[#00AEEF] px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm font-bold shadow-sm hover:shadow-md active:scale-95 border border-[#BEE6FF]"
-                    >
-                      <ExternalLink size={18} />
-                      <span>새 탭으로 접속 화면 열기</span>
-                    </Link>
-                    <button
-                      onClick={() => setShowQR(true)}
-                      className="bg-[#F3E8FF] text-[#9B51E0] px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm font-bold shadow-sm hover:shadow-md active:scale-95 border border-[#E9D5FF]"
-                    >
-                      <QrCode size={18} />
-                      <span>QR코드로 공유하기</span>
-                    </button>
-                  </div>
+              <div className="flex flex-col border-b pb-4 mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-5">단어 관리</h2>
+                
+                {/* Action Buttons Group */}
+                <div className="flex flex-col md:flex-row gap-3 w-full">
+                  <Link
+                    to={`/survey/${selectedSurvey}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full md:w-auto bg-[#EAF8FF] text-[#00AEEF] px-5 py-3.5 rounded-xl transition-all flex items-center justify-center md:justify-start gap-2 text-sm font-bold shadow-sm hover:shadow-md active:scale-95 border border-[#BEE6FF]"
+                  >
+                    <ExternalLink size={18} />
+                    <span>새 탭으로 접속 화면 열기</span>
+                  </Link>
+                  
+                  <button
+                    onClick={() => setShowQR(true)}
+                    className="w-full md:w-auto bg-[#F3E8FF] text-[#9B51E0] px-5 py-3.5 rounded-xl transition-all flex items-center justify-center md:justify-start gap-2 text-sm font-bold shadow-sm hover:shadow-md active:scale-95 border border-[#E9D5FF]"
+                  >
+                    <QrCode size={18} />
+                    <span>QR코드로 공유하기</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => fetchWords(selectedSurvey)}
+                    className="w-full md:w-auto bg-gray-50 text-gray-600 px-5 py-3.5 rounded-xl transition-all flex items-center justify-center md:justify-start gap-2 text-sm font-bold shadow-sm hover:shadow-md active:scale-95 border border-gray-200"
+                  >
+                    <RefreshCw size={18} />
+                    <span>새로고침</span>
+                  </button>
                 </div>
-                <button
-                  onClick={() => fetchWords(selectedSurvey)}
-                  className="bg-gray-50 text-gray-600 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-gray-100 self-end text-sm font-medium border active:scale-95 transition-all"
-                >
-                  <RefreshCw size={16} />
-                  새로고침
-                </button>
               </div>
 
               <div className="flex-1 overflow-y-auto">

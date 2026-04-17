@@ -158,7 +158,7 @@ export function WordCloud({ words }: { words: Word[] }) {
             <motion.div
                 key={`${w.text}-${i}`}
                 // REQUIREMENT 1: "Absolute positioning" enforced to strictly prevent standard flex alignment line-ups
-                className="absolute font-bold whitespace-nowrap"
+                className="absolute font-bold whitespace-nowrap select-none"
                 style={{
                     left: `${w.leftPct}%`,
                     top: `${w.topPct}%`,
@@ -168,6 +168,8 @@ export function WordCloud({ words }: { words: Word[] }) {
                     color: w.color,
                     cursor: 'pointer',
                     textShadow: 'rgba(255, 255, 255, 0.4) 2px 2px 4px',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
                 }}
                 // Transform -50% forces real center anchor for the absolute percentages 
                 initial={{ opacity: 0, scale: 0.2, x: "-50%", y: "-50%", rotate: w.rotate }}
@@ -177,6 +179,17 @@ export function WordCloud({ words }: { words: Word[] }) {
                     rotate: w.rotate === 0 ? [-2, 2, -1, 0] : [w.rotate, w.rotate+5, w.rotate-5, w.rotate], 
                     filter: 'drop-shadow(0px 8px 12px rgba(0,0,0,0.3)) brightness(1.15)',
                     zIndex: 50
+                }}
+                whileTap={{
+                    scale: 1.3,
+                    rotate: 0,
+                    filter: 'drop-shadow(0px 0px 20px rgba(255,255,0,0.6)) drop-shadow(0px 0px 10px rgba(255,255,255,0.8))',
+                    zIndex: 100,
+                    transition: {
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 10
+                    }
                 }}
                 transition={{
                     type: "spring",
