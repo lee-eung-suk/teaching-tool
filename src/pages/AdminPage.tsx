@@ -90,20 +90,20 @@ export function AdminPage() {
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-6 sm:gap-8">
         
         {/* Sidebar: Survey List */}
-        <div className="w-full md:w-1/3 bg-white p-4 sm:p-6 rounded-3xl shadow-sm h-[400px] md:h-[calc(100vh-4rem)] flex flex-col">
+        <div className="w-full md:w-1/3 bg-white p-4 sm:p-6 rounded-3xl shadow-sm h-auto md:h-[calc(100vh-4rem)] flex flex-col box-border overflow-x-hidden">
           <div className="flex justify-between items-center mb-4 sm:mb-6">
             <h2 className="text-xl sm:text-2xl font-bold">내 설문 목록</h2>
           </div>
           
-          <form onSubmit={handleCreateSurvey} className="flex gap-2 mb-6">
+          <form onSubmit={handleCreateSurvey} className="flex gap-2 mb-6 w-full">
             <input
               type="text"
               value={newSurveyTitle}
               onChange={(e) => setNewSurveyTitle(e.target.value)}
               placeholder="새 방 제목"
-              className="flex-1 p-3 rounded-lg border outline-none text-lg"
+              className="flex-1 min-w-0 p-3 rounded-lg border outline-none text-base sm:text-lg focus:border-[#00D084]"
             />
-            <button type="submit" className="bg-[#00D084] text-white px-4 rounded-lg hover:bg-green-500 flex items-center justify-center">
+            <button type="submit" className="bg-[#00D084] text-white px-4 rounded-lg hover:bg-green-500 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform">
               <Plus />
             </button>
           </form>
@@ -137,28 +137,31 @@ export function AdminPage() {
         <div className="w-full md:w-2/3 bg-white p-4 sm:p-6 rounded-3xl shadow-sm h-[500px] md:h-[calc(100vh-4rem)] flex flex-col">
           {selectedSurvey ? (
             <>
-              <div className="flex flex-col sm:flex-row justify-between sm:items-end border-b pb-4 mb-4 gap-4 sm:gap-0">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold flex flex-wrap items-center gap-2 sm:gap-3">
-                    단어 관리
+              <div className="flex flex-col border-b pb-4 mb-4 gap-4">
+                <div className="flex flex-col gap-4">
+                  <h2 className="text-2xl sm:text-3xl font-bold">단어 관리</h2>
+                  <div className="flex flex-wrap gap-2">
                     <Link
                       to={`/survey/${selectedSurvey}`}
                       target="_blank"
-                      className="text-[#00AEEF] hover:bg-[#eaf8ff] p-1.5 sm:p-2 rounded-full transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-normal"
+                      rel="noopener noreferrer"
+                      className="bg-[#EAF8FF] text-[#00AEEF] px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm font-bold shadow-sm hover:shadow-md active:scale-95 border border-[#BEE6FF]"
                     >
-                      <ExternalLink size={16} /> <span className="hidden sm:inline">새 탭으로 접속 화면 열기</span>
+                      <ExternalLink size={18} />
+                      <span>새 탭으로 접속 화면 열기</span>
                     </Link>
                     <button
                       onClick={() => setShowQR(true)}
-                      className="text-[#9B51E0] hover:bg-[#f3e8ff] p-1.5 sm:p-2 rounded-full transition-colors flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-normal border border-transparent hover:border-[#9B51E0]"
+                      className="bg-[#F3E8FF] text-[#9B51E0] px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-sm font-bold shadow-sm hover:shadow-md active:scale-95 border border-[#E9D5FF]"
                     >
-                      <QrCode size={16} /> <span className="hidden sm:inline">QR 코드로 공유하기</span>
+                      <QrCode size={18} />
+                      <span>QR코드로 공유하기</span>
                     </button>
-                  </h2>
+                  </div>
                 </div>
                 <button
                   onClick={() => fetchWords(selectedSurvey)}
-                  className="text-gray-500 flex items-center gap-1 hover:text-gray-800 self-start sm:self-auto text-sm sm:text-base"
+                  className="bg-gray-50 text-gray-600 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-gray-100 self-end text-sm font-medium border active:scale-95 transition-all"
                 >
                   <RefreshCw size={16} />
                   새로고침
@@ -193,8 +196,11 @@ export function AdminPage() {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4">
-              <p className="text-2xl">왼쪽에서 설문 방을 선택해주세요!</p>
+            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4 py-10 px-6 text-center">
+              <p className="text-xl sm:text-2xl font-bold leading-relaxed">
+                <span className="hidden md:inline">👈 왼쪽에서 설문 방을 선택해주세요!</span>
+                <span className="md:hidden">👆 위에서 설문 방을 선택해주세요!</span>
+              </p>
             </div>
           )}
         </div>
