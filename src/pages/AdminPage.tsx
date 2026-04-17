@@ -5,10 +5,6 @@ import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 
 export function AdminPage() {
-  const [user, setUser] = useState<any>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  
   // Dashboard state
   const [surveys, setSurveys] = useState<any[]>([]);
   const [newSurveyTitle, setNewSurveyTitle] = useState('');
@@ -16,25 +12,10 @@ export function AdminPage() {
   const [words, setWords] = useState<any[]>([]);
   const [showQR, setShowQR] = useState(false);
 
-  // Auth checking
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   // Fetch Surveys
   useEffect(() => {
-    if (user) {
-      fetchSurveys();
-    }
-  }, [user]);
+    fetchSurveys();
+  }, []);
 
   // Fetch Words when a survey is selected
   useEffect(() => {
@@ -55,63 +36,54 @@ export function AdminPage() {
     if (data) setWords(data);
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert("로그인 실패: " + error.message);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
   const handleCreateSurvey = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSurveyTitle.trim()) return;
 
-    await supabase.from('surveys').insert([{ title: newSurveyTitle, user_id: user.id }]);
+    console.log('Attempting to create survey:', newSurveyTitle);
+    const { error } = await supabase.from('surveys').insert([{ title: newSurveyTitle }]);
+    
+    if (error) {
+      console.error('Error creating survey:', error);
+      alert(`설문 생성 실패: ${error.message}\nSupabase RLS 정책(INSERT)을 확인해주세요.`);
+      return;
+    }
+    
+    console.log('Survey created successfully');
     setNewSurveyTitle('');
     fetchSurveys();
   };
 
   const handleDeleteSurvey = async (id: string) => {
     if (!window.confirm('정말 삭제하시겠습니까? 데이터(단어)도 함께 삭제됩니다.')) return;
-    await supabase.from('surveys').delete().eq('id', id);
+    
+    console.log('Attempting to delete survey:', id);
+    const { error } = await supabase.from('surveys').delete().eq('id', id);
+    
+    if (error) {
+      console.error('Error deleting survey:', error);
+      alert(`설문 삭제 실패: ${error.message}\nSupabase RLS 정책을 확인해주세요.`);
+      return;
+    }
+    
+    console.log('Survey deleted successfully');
     if (selectedSurvey === id) setSelectedSurvey(null);
     fetchSurveys();
   };
 
   const handleDeleteWord = async (id: string, surveyId: string) => {
-    await supabase.from('words').delete().eq('id', id);
+    console.log('Attempting to delete word:', id);
+    const { error } = await supabase.from('words').delete().eq('id', id);
+    
+    if (error) {
+      console.error('Error deleting word:', error);
+      alert(`단어 삭제 실패: ${error.message}\nSupabase RLS 정책을 확인해주세요.`);
+      return;
+    }
+    
+    console.log('Word deleted successfully');
     fetchWords(surveyId);
   };
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-white text-gray-800">
-        <form onSubmit={handleLogin} className="p-8 bg-gray-50 rounded-3xl shadow-md flex flex-col gap-4 w-96 font-sans">
-          <h2 className="text-2xl font-bold mb-4 text-center">관리자 로그인</h2>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className="p-3 rounded-lg border focus:border-[#00D084] outline-none"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="p-3 rounded-lg border focus:border-[#00D084] outline-none"
-          />
-          <button type="submit" className="bg-[#00AEEF] text-white p-3 rounded-lg font-bold hover:bg-[#009bda]">
-            로그인
-          </button>
-        </form>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen font-sans bg-[var(--color-pastel-bg)] p-4 sm:p-8">
@@ -121,9 +93,6 @@ export function AdminPage() {
         <div className="w-full md:w-1/3 bg-white p-4 sm:p-6 rounded-3xl shadow-sm h-[400px] md:h-[calc(100vh-4rem)] flex flex-col">
           <div className="flex justify-between items-center mb-4 sm:mb-6">
             <h2 className="text-xl sm:text-2xl font-bold">내 설문 목록</h2>
-            <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-500 px-3 py-1 bg-gray-100 rounded-full">
-              로그아웃
-            </button>
           </div>
           
           <form onSubmit={handleCreateSurvey} className="flex gap-2 mb-6">
