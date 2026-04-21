@@ -164,7 +164,7 @@ Task:
       </main>
 
       {/* Input Form Section */}
-      <div className="w-full min-h-[160px] sm:min-h-[180px] flex flex-col items-center justify-center gap-5 bg-gradient-to-t from-white/90 to-transparent pb-6 pt-4 sm:pb-8 lg:absolute lg:bottom-0 z-20">
+      <div className="w-full min-h-[140px] sm:min-h-[160px] flex flex-col items-center justify-start gap-4 bg-gradient-to-t from-white/90 to-transparent pb-6 pt-2 z-20 shrink-0">
         <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4 w-full px-4">
           <div className="bg-white/80 w-full max-w-[600px] p-2 rounded-full sm:rounded-full rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.1)] flex flex-row items-center border-[3px] border-white relative mdNav items-center">
             <input

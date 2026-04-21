@@ -60,90 +60,102 @@ export function WordCloud({ words }: { words: Word[] }) {
         const word = sortedWords[i];
         const isHero = i === 0;
         
-        let vwSize = 0;
+        let initialVwSize = 0;
         if (isHero) {
-            // REQUIREMENTS 1 & 2: Hero word is massive, up to 35vw (35% of screen).
-            // It clamps down based on character length to ensure it doesn't overflow 90% of screen horizontally.
-            vwSize = Math.min(35, 90 / Math.max(word.text.length, 1)); 
+            // Cap initial massive size so it has space on smaller screens
+            initialVwSize = Math.min(25, 80 / Math.max(word.text.length, 1)); 
         } else {
-            // REQUIREMENT 3: Variable rhythm. Min 2.5vw, max ~8.5vw.
-            const baseSize = 2.5 + Math.random() * 6.0; 
-            vwSize = Math.min(baseSize, 40 / Math.max(word.text.length, 1));
+            const baseSize = 2.5 + Math.random() * 5.0; 
+            initialVwSize = Math.min(baseSize, 30 / Math.max(word.text.length, 1));
         }
 
-        const pxSize = vwSize * VwUnit;
-        // Bounding box approximation roughly matching the blocky 'Jua' font format
-        const boxW = Math.max(word.text.length, 1) * pxSize * 0.9; 
-        const boxH = pxSize * 1.35;
-
-        let attempt = 0;
+        let finalVwSize = initialVwSize;
         let success = false;
-        let x = 0, y = 0;
+        let finalX = 0, finalY = 0;
+        let finalRotate = 0;
 
-        // Try placing the word with random generation up to 2000 times
-        while (!success && attempt < 2000) {
-            if (isHero && attempt < 50) {
-                // Ensure the core word drops near the visual center reliably
-                x = W / 2 + (Math.random() * (W * 0.1) - (W * 0.05));
-                y = H / 2 + (Math.random() * (H * 0.1) - (H * 0.05));
-            } else {
-                // Completely random distribution for all secondary words across the full boundary range
-                const marginX = W * 0.05;
-                const marginY = H * 0.05;
-                const minX = boxW / 2 + marginX;
-                const maxX = W - boxW / 2 - marginX;
-                const minY = boxH / 2 + marginY;
-                const maxY = H - boxH / 2 - marginY;
+        // Auto Scale-down Loop: Never allow overlapping. Scale down until it fits.
+        while (!success && finalVwSize >= 1.0) {
+            const pxSize = finalVwSize * VwUnit;
+            // Precise padding: 10px strict padding on all sides to breathe
+            // Adjust box width based on character count and font rendering
+            const boxW = Math.max(word.text.length, 1) * pxSize * 0.95 + 10; 
+            const boxH = pxSize * 1.35 + 10;
 
-                x = minX + Math.random() * Math.max(maxX - minX, 1);
-                y = minY + Math.random() * Math.max(maxY - minY, 1);
-            }
-
-            const rect = {
-                l: x - boxW / 2,
-                r: x + boxW / 2,
-                t: y - boxH / 2,
-                b: y + boxH / 2
-            };
-
-            let collision = false;
-            // Pad hitboxes slightly more for the hero to give it breathing room physically
-            const collisionMargin = isHero ? pxSize * 0.10 : pxSize * 0.05;
-
-            // REQUIREMENT 4: Bounding Box Collision Check
-            for (const p of placedRects) {
-                if (!(rect.r + collisionMargin < p.l || 
-                      rect.l - collisionMargin > p.r || 
-                      rect.b + collisionMargin < p.t || 
-                      rect.t - collisionMargin > p.b)) {
-                    collision = true;
-                    break;
+            let attempt = 0;
+            // 500 attempts at the current font size
+            while (!success && attempt < 500) {
+                let currentRotate = isHero ? 0 : (Math.random() > 0.7 ? 0 : (Math.random() > 0.5 ? 12 : -12));
+                
+                // If rotated 12 degrees, the bounding box technically expands
+                let effBoxW = boxW;
+                let effBoxH = boxH;
+                if (currentRotate !== 0) {
+                    effBoxW = boxW * 1.05 + boxH * 0.2;
+                    effBoxH = boxH * 1.05 + boxW * 0.2;
                 }
+
+                if (isHero && attempt < 100) {
+                    // Hero tries to stay near center
+                    finalX = W / 2 + (Math.random() * (W * 0.1) - (W * 0.05));
+                    finalY = H / 2 + (Math.random() * (H * 0.1) - (H * 0.05));
+                } else {
+                    const minX = effBoxW / 2;
+                    const maxX = W - effBoxW / 2;
+                    const minY = effBoxH / 2;
+                    const maxY = H - effBoxH / 2;
+                    
+                    // Box is too big for the screen at this font size! Break out to scale it down immediately.
+                    if (maxX < minX || maxY < minY) {
+                        break; 
+                    }
+
+                    finalX = minX + Math.random() * (maxX - minX);
+                    finalY = minY + Math.random() * (maxY - minY);
+                }
+
+                const rect = {
+                    l: finalX - effBoxW / 2,
+                    r: finalX + effBoxW / 2,
+                    t: finalY - effBoxH / 2,
+                    b: finalY + effBoxH / 2
+                };
+
+                let collision = false;
+                for (const p of placedRects) {
+                    // Strict bounding box intersection check 
+                    if (!(rect.r < p.l || 
+                          rect.l > p.r || 
+                          rect.b < p.t || 
+                          rect.t > p.b)) {
+                        collision = true;
+                        break;
+                    }
+                }
+
+                if (!collision) {
+                    success = true;
+                    finalRotate = currentRotate;
+                    placedRects.push(rect);
+                }
+                attempt++;
             }
 
-            if (!collision) {
-                success = true;
-                placedRects.push(rect);
-                placed.push({
-                    text: word.text,
-                    vwSize,
-                    leftPct: (x / W) * 100, // Safe percentage coordinate mapping
-                    topPct: (y / H) * 100,
-                    rotate: isHero ? 0 : (Math.random() > 0.7 ? 0 : (Math.random() > 0.5 ? 12 : -12)),
-                    color: COLORS[i % COLORS.length]
-                });
+            if (!success) {
+                // Completely failed 500 attempts at this size. 
+                // CRITICAL RULE: shrink the font by 10% and try again. No overlapping allowed.
+                finalVwSize *= 0.9;
             }
-            attempt++;
         }
 
-        if (!success) {
-            // Graceful degradation: place near center safely if screen gets completely choked
+        // Only place if it successfully found an empty space without skipping rules
+        if (success) {
             placed.push({
                 text: word.text,
-                vwSize,
-                leftPct: 50 + (Math.random() * 20 - 10),
-                topPct: 50 + (Math.random() * 20 - 10),
-                rotate: 0,
+                vwSize: finalVwSize,
+                leftPct: (finalX / W) * 100, 
+                topPct: (finalY / H) * 100,
+                rotate: finalRotate,
                 color: COLORS[i % COLORS.length]
             });
         }
