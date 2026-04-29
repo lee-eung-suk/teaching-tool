@@ -76,11 +76,10 @@ export function ParticipantPage() {
 
     try {
       // 1. Process via Gemini API (Directly from Frontend as per AI Studio guidance)
-      const prompt = `You are a strict but friendly content moderator and synonym grouper for a kindergarten/elementary school wordcloud survey tool.
+      const prompt = `You are a strict but friendly content moderator for a kindergarten/elementary school wordcloud survey tool.
 The user submitted the word: "${word.trim()}".
 Task:
-1. Is it a bad word, curse word, explicit, violently themed, harmful, or inappropriate for young children? If yes, set "valid": false and provide a child-friendly short reason in Korean.
-2. If it is an acceptable word, normalize it to a standard, simple Korean representative noun (e.g., 'apple', '애플' -> '사과', '아빠', '대디' -> '아빠', '놀기', '놀다' -> '놀기').`;
+Is it a bad word, curse word, explicit, violently themed, harmful, or inappropriate for young children? If yes, set "valid": false and provide a child-friendly short reason in Korean. If it is an acceptable word, set "valid": true. You must not modify the user's word.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -91,10 +90,9 @@ Task:
             type: Type.OBJECT,
             properties: {
               valid: { type: Type.BOOLEAN },
-              word: { type: Type.STRING },
               reason: { type: Type.STRING },
             },
-            required: ['valid', 'word', 'reason'],
+            required: ['valid', 'reason'],
           },
         },
       });
@@ -107,11 +105,12 @@ Task:
         return;
       }
 
-      const normalizedWord = processData.word;
+      // 강제: AI가 수정하지 못하도록 무조건 사용자가 쓴 단어(word.trim())를 그대로 사용
+      const finalWord = word.trim();
 
       // 2. Insert or Update in Supabase
       // Try to find if word exists
-      const existing = words.find((w) => w.text === normalizedWord);
+      const existing = words.find((w) => w.text === finalWord);
       if (existing) {
         await supabase
           .from('words')
@@ -120,7 +119,7 @@ Task:
       } else {
         await supabase
           .from('words')
-          .insert([{ survey_id: id, word: normalizedWord, count: 1 }]);
+          .insert([{ survey_id: id, word: finalWord, count: 1 }]);
       }
 
       await fetchWords(); // Force refresh words
