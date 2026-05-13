@@ -173,7 +173,7 @@ Is it a bad word, curse word, explicit, violently themed, harmful, or inappropri
               placeholder="좋아하는 단어를 써보세요!"
               disabled={isSubmitting}
               className="flex-1 w-full border-none py-2.5 sm:py-3.5 px-4 sm:px-7 text-base sm:text-xl rounded-full sm:rounded-l-full sm:rounded-r-none outline-none bg-transparent placeholder:text-gray-400 font-sans text-center sm:text-left"
-              maxLength={15}
+              maxLength={100}
             />
             <button
               type="submit"

@@ -60,13 +60,18 @@ export function WordCloud({ words }: { words: Word[] }) {
         const word = sortedWords[i];
         const isHero = i === 0;
         
+        let charLength = 0;
+        for (let c = 0; c < word.text.length; c++) {
+            charLength += word.text.charCodeAt(c) > 255 ? 1.0 : 0.55;
+        }
+        
         let initialVwSize = 0;
         if (isHero) {
             // Cap initial massive size so it has space on smaller screens
-            initialVwSize = Math.min(25, 80 / Math.max(word.text.length, 1)); 
+            initialVwSize = Math.min(25, 80 / Math.max(charLength, 1)); 
         } else {
             const baseSize = 2.5 + Math.random() * 5.0; 
-            initialVwSize = Math.min(baseSize, 30 / Math.max(word.text.length, 1));
+            initialVwSize = Math.min(baseSize, 30 / Math.max(charLength, 1));
         }
 
         let finalVwSize = initialVwSize;
@@ -79,7 +84,7 @@ export function WordCloud({ words }: { words: Word[] }) {
             const pxSize = finalVwSize * VwUnit;
             // Precise padding: 10px strict padding on all sides to breathe
             // Adjust box width based on character count and font rendering
-            const boxW = Math.max(word.text.length, 1) * pxSize * 0.95 + 10; 
+            const boxW = Math.max(charLength, 1) * pxSize * 0.95 + 10; 
             const boxH = pxSize * 1.35 + 10;
 
             let attempt = 0;
