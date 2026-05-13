@@ -95,15 +95,15 @@ export function AdminPage() {
             <h2 className="text-xl sm:text-2xl font-bold">내 설문 목록</h2>
           </div>
           
-          <form onSubmit={handleCreateSurvey} className="flex gap-2 mb-6 w-full">
+          <form onSubmit={handleCreateSurvey} className="flex flex-col sm:flex-row gap-2 mb-6 w-full">
             <input
               type="text"
               value={newSurveyTitle}
               onChange={(e) => setNewSurveyTitle(e.target.value)}
               placeholder="새 방 제목"
-              className="flex-1 min-w-0 p-3 rounded-lg border outline-none text-base sm:text-lg focus:border-[#00D084]"
+              className="w-full sm:flex-1 min-w-0 p-3 rounded-lg border outline-none text-base sm:text-lg focus:border-[#00D084]"
             />
-            <button type="submit" className="bg-[#00D084] text-white px-4 rounded-lg hover:bg-green-500 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform">
+            <button type="submit" className="w-full sm:w-auto bg-[#00D084] py-3 text-white px-4 rounded-lg hover:bg-green-500 flex items-center justify-center flex-shrink-0 active:scale-95 transition-transform">
               <Plus />
             </button>
           </form>
@@ -112,18 +112,18 @@ export function AdminPage() {
             {surveys.map((survey) => (
               <div
                 key={survey.id}
-                className={`p-4 border rounded-xl flex justify-between items-center transition-colors cursor-pointer ${
+                className={`w-full min-h-[60px] p-4 border rounded-xl flex justify-between items-center transition-colors cursor-pointer ${
                   selectedSurvey === survey.id ? 'border-[#00AEEF] bg-[#eefaff]' : 'hover:bg-gray-50'
                 }`}
                 onClick={() => setSelectedSurvey(survey.id)}
               >
-                <div className="truncate pr-2 font-bold text-lg">{survey.title}</div>
+                <div className="flex-1 pr-4 font-bold text-base sm:text-lg break-words whitespace-normal">{survey.title}</div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDeleteSurvey(survey.id);
                   }}
-                  className="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+                  className="shrink-0 text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -178,16 +178,16 @@ export function AdminPage() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     {words.map((w) => (
-                      <div key={w.id} className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl border">
-                        <div className="flex gap-3 sm:gap-4 items-center">
-                          <span className="font-bold text-lg sm:text-xl truncate max-w-[100px] sm:max-w-none">{w.word}</span>
-                          <span className="bg-white border rounded-full px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold text-gray-500 shadow-sm">
+                      <div key={w.id} className="w-full h-auto min-h-[60px] flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl border">
+                        <div className="flex gap-3 flex-1 pr-4 min-w-0 sm:gap-4 items-center">
+                          <span className="font-bold text-lg sm:text-xl break-words whitespace-normal">{w.word}</span>
+                          <span className="shrink-0 bg-white border rounded-full px-2 sm:px-3 py-0.5 sm:py-1 text-xs sm:text-sm font-bold text-gray-500 shadow-sm">
                             {w.count}
                           </span>
                         </div>
                         <button
                           onClick={() => handleDeleteWord(w.id, selectedSurvey)}
-                          className="text-gray-400 hover:text-red-500 p-2 hover:bg-white rounded-full shadow-sm"
+                          className="shrink-0 text-gray-400 hover:text-red-500 p-2 hover:bg-white rounded-full shadow-sm"
                         >
                           <Trash2 size={18} />
                         </button>
